@@ -23,6 +23,20 @@ def add_songs():
         song_name = os.path.basename(song)
         song_list.insert(END,song_name)
     
+def delete_song():
+    if song_list.size() and len(song_list.curselection())>0:
+        song_list.delete(ANCHOR)
+        global is_song_played
+        if is_song_played:
+            stop()
+
+def delete_all_songs():
+    if song_list.size():
+        global is_song_played
+        if is_song_played:
+            stop()
+        song_list.delete(0,END)
+
 
 def play():
     if song_list.size() and len(song_list.curselection())>0:
@@ -42,7 +56,7 @@ def play():
 
 
 def stop():
-    if song_list.size() and len(song_list.curselection())>0:
+    if song_list.size():
         pygame.mixer.music.stop()
         song_list.select_clear(ACTIVE)
         song_list.selection_clear(0, 'end')
@@ -184,9 +198,17 @@ root.config(menu=menu_songs)
 root.option_add('*tearOff',FALSE)
 
 add_songs_menu=Menu(menu_songs,background='grey',foreground='black', activebackground='white',activeborderwidth=0, activeforeground='black',relief=RAISED)
+delete_song_menu=Menu(menu_songs,background='grey',foreground='black', activebackground='white',activeborderwidth=0, activeforeground='black',relief=RAISED)
 
 menu_songs.add_cascade(label="Add Songs",menu=add_songs_menu)
+menu_songs.add_cascade(label="Remove Songs",menu=delete_song_menu)
+
 add_songs_menu.add_command(label="Add One Song To The Playlist",command=add_song)
 add_songs_menu.add_command(label="Add Many Songs To The Playlist",command=add_songs)
+
+delete_song_menu.add_command(label="Remove One Song From The Playlist",command=delete_song)
+delete_song_menu.add_command(label="Remove All Songs From The Playlist",command=delete_all_songs)
+
+
 tabsystem.pack(expand=1, fill=BOTH)
 root.mainloop()
