@@ -1,8 +1,10 @@
+import time
 from tkinter import *
 from tkinter import filedialog
 import pygame
 from tkinter import ttk
 import os
+from mutagen.mp3 import MP3
 
 #functions
 
@@ -16,6 +18,21 @@ def add_song():
     song=filedialog.askopenfilename(initialdir='Songs/',title="Choose A Song",filetypes=(("mp3 Files","*.mp3"),))
     song_name = os.path.basename(song)
     song_list.insert(END,song_name)
+
+def play_time():
+    if is_song_played:
+        current_time=pygame.mixer.music.get_pos()/1000
+        converted_time_elapsed=time.strftime("%M:%S",time.gmtime(current_time))
+
+        song=song_list.get(ACTIVE)
+        song=f"Songs/{song}"
+
+        song_length=MP3(song).info.length
+        converted_time_song=time.strftime("%M:%S",time.gmtime(song_length))
+
+
+        status_bar.config(text=f'Time Elapsed: {converted_time_elapsed} of {converted_time_song} ')
+        status_bar.after(1000,play_time)
 
 def add_songs():
     songs=filedialog.askopenfilenames(initialdir='Songs/',title="Choose A Song",filetypes=(("mp3 Files","*.mp3"),))
@@ -39,7 +56,7 @@ def delete_all_songs():
 
 
 def play():
-    if song_list.size() and len(song_list.curselection())>0:
+    if song_list.size():
         global is_song_played
         global paused
         play_btn.configure(image=pause_btn_img)
@@ -47,12 +64,16 @@ def play():
             pygame.mixer.music.unpause()
             paused=False
         else:
+            if len(song_list.curselection())==0:
+                song_list.activate(0)
+                song_list.selection_set(0,last=None)
             song=song_list.get(ACTIVE)
             song=f"Songs/{song}"
             pygame.mixer.music.load(song)
             pygame.mixer.music.play(loops=0)
             paused=False
             is_song_played=True
+            play_time()
 
 
 def stop():
@@ -65,6 +86,7 @@ def stop():
         paused=True
         is_song_played=False
         play_btn.configure(image=play_btn_img)
+        status_bar.config(text="No Song Currently Playing ")
 
 def pause(is_paused):
     if song_list.size() and len(song_list.curselection())>0:
@@ -75,7 +97,7 @@ def pause(is_paused):
         paused=True
 
 def next_song():
-    if song_list.size() and len(song_list.curselection())>0:
+    if song_list.size():
         global is_song_played
         is_song_played=True
         global paused
@@ -94,9 +116,11 @@ def next_song():
         song_list.activate(next)
         song_list.selection_set(next,last=None)
 
+        play_time()
+
 
 def prev_song():
-    if song_list.size() and len(song_list.curselection())>0:
+    if song_list.size():
         global is_song_played
         is_song_played=True
         global paused
@@ -115,10 +139,12 @@ def prev_song():
         song_list.activate(next)
         song_list.selection_set(next,last=None)
 
+        play_time()
+
 #view
 root=Tk()
 root.title("Mp3 player")
-root.geometry("600x400")
+root.geometry("700x400")
 
 tabsystem = ttk.Notebook(root)
 
@@ -133,8 +159,7 @@ style.theme_create('mainTheme', settings={
     },
     "TNotebook": {
         "configure": {
-            "background":'grey', # Your margin color
-           
+            "background":'grey', # Your margin color    
         }
     },
     "TNotebook.Tab": {
@@ -209,6 +234,8 @@ add_songs_menu.add_command(label="Add Many Songs To The Playlist",command=add_so
 delete_song_menu.add_command(label="Remove One Song From The Playlist",command=delete_song)
 delete_song_menu.add_command(label="Remove All Songs From The Playlist",command=delete_all_songs)
 
+status_bar=Label(tab1_main,text="No Song Currently Playing ",borderwidth=1,bg='grey',fg='black',relief=GROOVE,anchor=E)
+status_bar.pack(fill=X,side=BOTTOM,ipady=2)
 
 tabsystem.pack(expand=1, fill=BOTH)
 root.mainloop()
