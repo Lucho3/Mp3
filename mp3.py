@@ -27,13 +27,11 @@ def play_time():
         song=song_list.get(ACTIVE)
         song=f"Songs/{song}"
 
-        song_length=MP3(song).info.length
+        song_length=MP3(song).info.length-1
         converted_time_song=time.strftime("%M:%S",time.gmtime(song_length))
 
-
-        #trqbva da se opravi
-        if converted_time_elapsed==converted_time_song-120:
-            status_bar.config(text="No Song Currently Playing ")
+        if converted_time_elapsed==converted_time_song:
+            stop()
             return
 
         status_bar.config(text=f'Time Elapsed: {converted_time_elapsed} of {converted_time_song} ')
@@ -219,8 +217,6 @@ play_btn=Button(buttons_frame,command=lambda: play() if paused else pause(paused
 play_btn.grid(row=0,column=2,padx=10)
 stop_btn=Button(buttons_frame,command=stop,image=stop_btn_img,borderwidth=0,bg='white', activebackground='white',highlightthickness=0)
 stop_btn.grid(row=0,column=4,padx=10)
-
-
 
 
 menu_songs=Menu(root,background='grey', foreground='black', activebackground='white', activeforeground='black',borderwidth=0,relief=FLAT,activeborderwidth=0)
