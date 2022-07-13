@@ -31,6 +31,11 @@ def play_time():
         converted_time_song=time.strftime("%M:%S",time.gmtime(song_length))
 
 
+        #trqbva da se opravi
+        if converted_time_elapsed==converted_time_song-120:
+            status_bar.config(text="No Song Currently Playing ")
+            return
+
         status_bar.config(text=f'Time Elapsed: {converted_time_elapsed} of {converted_time_song} ')
         status_bar.after(1000,play_time)
 
