@@ -1,3 +1,4 @@
+from glob import glob
 import time
 from tkinter import *
 from tkinter import filedialog
@@ -11,30 +12,54 @@ from mutagen.mp3 import MP3
 global paused
 paused=True
 
-global is_song_played
-is_song_played=False
+global song_length
+song_length=0
+
+global current_song
+current_song=None
 
 def add_song():
     song=filedialog.askopenfilename(initialdir='Songs/',title="Choose A Song",filetypes=(("mp3 Files","*.mp3"),))
     song_name = os.path.basename(song)
     song_list.insert(END,song_name)
 
+
+def slide(slide_position):
+    global current_song
+    global paused
+    if current_song!=None:
+        pygame.mixer.music.load(current_song)
+        pygame.mixer.music.play(loops=0,start=int(music_slider.get()))
+    else:
+        music_slider.config(value=0)  
+
+
 def play_time():
-    if is_song_played:
-        current_time=pygame.mixer.music.get_pos()/1000
-        converted_time_elapsed=time.strftime("%M:%S",time.gmtime(current_time))
+    global current_song
+    if current_song!=None:
+        if paused==False:
+            current_time=pygame.mixer.music.get_pos()/1000
 
-        song=song_list.get(ACTIVE)
-        song=f"Songs/{song}"
+            converted_time_elapsed=time.strftime("%M:%S",time.gmtime(current_time))
 
-        song_length=MP3(song).info.length-1
-        converted_time_song=time.strftime("%M:%S",time.gmtime(song_length))
+            global song_length
+            song_length=MP3(current_song).info.length
+            converted_time_song=time.strftime("%M:%S",time.gmtime(song_length))
 
-        if converted_time_elapsed==converted_time_song:
-            stop()
-            return
+            current_time+=1
+            if int(music_slider.get())==int(song_length):
+                stop()
+                return
+            elif int(music_slider.get())==int(current_time):
+                music_slider.config(to=int(song_length),value=int(current_time))
+            else:
+                music_slider.config(to=int(song_length),value=int(music_slider.get()))
+                converted_time_elapsed=time.strftime("%M:%S",time.gmtime(int(music_slider.get())))
+                status_bar.config(text=f'Time Elapsed: {converted_time_elapsed} of {converted_time_song} ')
+                next_time=int(music_slider.get())+1
+                music_slider.config(value=next_time)      
+            
 
-        status_bar.config(text=f'Time Elapsed: {converted_time_elapsed} of {converted_time_song} ')
         status_bar.after(1000,play_time)
 
 def add_songs():
@@ -46,37 +71,37 @@ def add_songs():
 def delete_song():
     if song_list.size() and len(song_list.curselection())>0:
         song_list.delete(ANCHOR)
-        global is_song_played
-        if is_song_played:
+        global current_song
+        if current_song!=None:
             stop()
 
 def delete_all_songs():
     if song_list.size():
-        global is_song_played
-        if is_song_played:
+        global current_song
+        if current_song!=None:
             stop()
         song_list.delete(0,END)
 
 
 def play():
     if song_list.size():
-        global is_song_played
+        global current_song
         global paused
         play_btn.configure(image=pause_btn_img)
-        if is_song_played:
+        music_slider.config(state=NORMAL)
+        if current_song!=None:
             pygame.mixer.music.unpause()
             paused=False
         else:
             if len(song_list.curselection())==0:
                 song_list.activate(0)
                 song_list.selection_set(0,last=None)
-            song=song_list.get(ACTIVE)
-            song=f"Songs/{song}"
-            pygame.mixer.music.load(song)
+            current_song=f"Songs/{song_list.get(ACTIVE)}"
+            pygame.mixer.music.load(current_song)
             pygame.mixer.music.play(loops=0)
             paused=False
-            is_song_played=True
             play_time()
+            
 
 
 def stop():
@@ -84,25 +109,27 @@ def stop():
         pygame.mixer.music.stop()
         song_list.select_clear(ACTIVE)
         song_list.selection_clear(0, 'end')
-        global is_song_played
         global paused
+        global current_song
         paused=True
-        is_song_played=False
         play_btn.configure(image=play_btn_img)
         status_bar.config(text="No Song Currently Playing ")
+        music_slider.config(value=0)
+        current_song=None
+        music_slider.config(state=DISABLED)
 
-def pause(is_paused):
+def pause():
     if song_list.size() and len(song_list.curselection())>0:
         global paused
-        paused=is_paused
+        music_slider.config(state=DISABLED)
         pygame.mixer.music.pause()
         play_btn.configure(image=play_btn_img)
         paused=True
 
 def next_song():
     if song_list.size():
-        global is_song_played
-        is_song_played=True
+        global current_song
+        music_slider.config(state=NORMAL)
         global paused
         paused=False
         play_btn.configure(image=pause_btn_img)
@@ -110,11 +137,10 @@ def next_song():
         if len(song_list.curselection())>0 and song_list.curselection()[0]<song_list.size()-1:
             next=song_list.curselection()
             next=next[0]+1
-        song=song_list.get(next)
-        song=f"Songs/{song}"
-        pygame.mixer.music.load(song)
+        current_song=f"Songs/{song_list.get(next)}"
+        pygame.mixer.music.load(current_song)
         pygame.mixer.music.play(loops=0)
-
+        music_slider.config(value=0) 
         song_list.select_clear(0,END)
         song_list.activate(next)
         song_list.selection_set(next,last=None)
@@ -124,8 +150,8 @@ def next_song():
 
 def prev_song():
     if song_list.size():
-        global is_song_played
-        is_song_played=True
+        global current_song
+        music_slider.config(state=NORMAL)
         global paused
         paused=False
         play_btn.configure(image=pause_btn_img)
@@ -133,11 +159,10 @@ def prev_song():
         if len(song_list.curselection())>0 and song_list.curselection()[0]>0:
             next=song_list.curselection()
             next=next[0]-1
-        song=song_list.get(next)
-        song=f"Songs/{song}"
-        pygame.mixer.music.load(song)
+        current_song=f"Songs/{song_list.get(next)}"
+        pygame.mixer.music.load(current_song)
         pygame.mixer.music.play(loops=0)
-
+        music_slider.config(value=0) 
         song_list.select_clear(0,END)
         song_list.activate(next)
         song_list.selection_set(next,last=None)
@@ -147,7 +172,7 @@ def prev_song():
 #view
 root=Tk()
 root.title("Mp3 player")
-root.geometry("700x400")
+root.geometry("700x500")
 
 tabsystem = ttk.Notebook(root)
 
@@ -179,10 +204,10 @@ style.theme_create('mainTheme', settings={
 
 style.theme_use("mainTheme")
 tab1_main=ttk.Frame(tabsystem)
-tab1_main.pack()
+tab1_main.pack(fill=BOTH)
 
 tab2_playlists=ttk.Frame(tabsystem)
-tab2_playlists.place(width=600, height=400)
+tab2_playlists.pack(fill=BOTH)
 tabsystem.add(tab1_main, text='Main')
 tabsystem.add(tab2_playlists, text='Playlists')
 
@@ -213,7 +238,7 @@ back_btn=Button(buttons_frame,command=prev_song,image=back_btn_img,borderwidth=0
 back_btn.grid(row=0,column=0,padx=10)
 forward_btn=Button(buttons_frame,command=next_song, image=forward_btn_img,borderwidth=0,bg='white', activebackground='white',highlightthickness=0)
 forward_btn.grid(row=0,column=1,padx=10)
-play_btn=Button(buttons_frame,command=lambda: play() if paused else pause(paused),image=play_btn_img,borderwidth=0,bg='white', activebackground='white',highlightthickness=0)
+play_btn=Button(buttons_frame,command=lambda: play() if paused else pause(),image=play_btn_img,borderwidth=0,bg='white', activebackground='white',highlightthickness=0)
 play_btn.grid(row=0,column=2,padx=10)
 stop_btn=Button(buttons_frame,command=stop,image=stop_btn_img,borderwidth=0,bg='white', activebackground='white',highlightthickness=0)
 stop_btn.grid(row=0,column=4,padx=10)
@@ -237,6 +262,9 @@ delete_song_menu.add_command(label="Remove All Songs From The Playlist",command=
 
 status_bar=Label(tab1_main,text="No Song Currently Playing ",borderwidth=1,bg='grey',fg='black',relief=GROOVE,anchor=E)
 status_bar.pack(fill=X,side=BOTTOM,ipady=2)
+
+music_slider=ttk.Scale(tab1_main,from_=0,to=100,orien=HORIZONTAL,value=0,command=slide,length=500)
+music_slider.pack(pady=40)
 
 tabsystem.pack(expand=1, fill=BOTH)
 root.mainloop()
