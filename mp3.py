@@ -23,6 +23,22 @@ def add_song():
     song_name = os.path.basename(song)
     song_list.insert(END,song_name)
 
+def volume(slide_position):
+    pygame.mixer.music.set_volume(volume_slider.get())
+
+    current_volume=float(slide_position)*100
+    if current_volume<1:
+        volume_lbl.config(image=v0)
+    elif current_volume>=1 and current_volume<20:
+        volume_lbl.config(image=v1)
+    elif current_volume>=20 and current_volume<40:
+        volume_lbl.config(image=v2)
+    elif current_volume>=40 and current_volume<60:
+        volume_lbl.config(image=v3)
+    elif current_volume>=60 and current_volume<80:
+        volume_lbl.config(image=v4)
+    else:
+        volume_lbl.config(image=v5)
 
 def slide(slide_position):
     global current_song
@@ -48,7 +64,7 @@ def play_time():
 
             current_time+=1
             if int(music_slider.get())==int(song_length):
-                stop()
+                next_song()
                 return
             elif int(music_slider.get())==int(current_time):
                 music_slider.config(to=int(song_length),value=int(current_time))
@@ -59,7 +75,6 @@ def play_time():
                 next_time=int(music_slider.get())+1
                 music_slider.config(value=next_time)      
             
-
         status_bar.after(1000,play_time)
 
 def add_songs():
@@ -100,6 +115,7 @@ def play():
             pygame.mixer.music.load(current_song)
             pygame.mixer.music.play(loops=0)
             paused=False
+            pygame.mixer.music.set_volume(volume_slider.get())
             play_time()
             
 
@@ -203,8 +219,12 @@ style.theme_create('mainTheme', settings={
 })
 
 style.theme_use("mainTheme")
+
 tab1_main=ttk.Frame(tabsystem)
 tab1_main.pack(fill=BOTH)
+
+player_frame=ttk.Frame(tab1_main)
+player_frame.pack(padx=10)
 
 tab2_playlists=ttk.Frame(tabsystem)
 tab2_playlists.pack(fill=BOTH)
@@ -213,7 +233,7 @@ tabsystem.add(tab2_playlists, text='Playlists')
 
 pygame.mixer.init()
 
-songlist_frame=Frame(tab1_main, highlightbackground="#0076b3", highlightthickness=5,highlightcolor="#0076b3")
+songlist_frame=Frame(player_frame, highlightbackground="#0076b3", highlightthickness=5,highlightcolor="#0076b3")
 song_list=Listbox(songlist_frame,bg="#1e1e1e",fg="blue",width=60,borderwidth=1,selectbackground="white",selectforeground="black",highlightcolor="black")
 song_list.pack(side=LEFT,fill = BOTH )
 
@@ -223,7 +243,7 @@ scrollbar_song_list.pack(side=RIGHT,fill=Y)
 song_list.config(yscrollcommand = scrollbar_song_list.set)
 scrollbar_song_list.config(command = song_list.yview)
 
-songlist_frame.pack(pady=20)
+songlist_frame.grid(row=0,column=0,pady=20)
 
 back_btn_img=PhotoImage(file="buttons/prevb.png")
 forward_btn_img=PhotoImage(file="buttons/nextb.png")
@@ -231,8 +251,18 @@ play_btn_img=PhotoImage(file="buttons/stb.png")
 pause_btn_img=PhotoImage(file="buttons/pb.png")
 stop_btn_img=PhotoImage(file="buttons/sb.png")
 
-buttons_frame=ttk.Frame(tab1_main,)
-buttons_frame.pack()
+v0=PhotoImage(file="buttons/vlo/v0.png")
+v1=PhotoImage(file="buttons/vlo/v1.png")
+v2=PhotoImage(file="buttons/vlo/v2.png")
+v3=PhotoImage(file="buttons/vlo/v3.png")
+v4=PhotoImage(file="buttons/vlo/v4.png")
+v5=PhotoImage(file="buttons/vlo/v5.png")
+
+volume_lbl=ttk.Label(player_frame,image=v5)
+volume_lbl.grid(row=1,column=1,pady=10)
+
+buttons_frame=ttk.Frame(player_frame)
+buttons_frame.grid(row=1,column=0,pady=10)
 
 back_btn=Button(buttons_frame,command=prev_song,image=back_btn_img,borderwidth=0,bg='white', activebackground='white',highlightthickness=0)
 back_btn.grid(row=0,column=0,padx=10)
@@ -260,11 +290,17 @@ add_songs_menu.add_command(label="Add Many Songs To The Playlist",command=add_so
 delete_song_menu.add_command(label="Remove One Song From The Playlist",command=delete_song)
 delete_song_menu.add_command(label="Remove All Songs From The Playlist",command=delete_all_songs)
 
+
+
 status_bar=Label(tab1_main,text="No Song Currently Playing ",borderwidth=1,bg='grey',fg='black',relief=GROOVE,anchor=E)
 status_bar.pack(fill=X,side=BOTTOM,ipady=2)
 
-music_slider=ttk.Scale(tab1_main,from_=0,to=100,orien=HORIZONTAL,value=0,command=slide,length=500)
-music_slider.pack(pady=40)
+music_slider=ttk.Scale(player_frame,from_=0,to=100,orien=HORIZONTAL,value=0,command=slide,length=500)
+music_slider.grid(row=2,column=0,pady=20)
 
+volume_frame=LabelFrame(player_frame,text="Volume",bg="White")
+volume_frame.grid(row=0,column=1,padx=55)
+volume_slider=ttk.Scale(volume_frame,from_=0,to=1,orien=VERTICAL,value=1,command=volume,length=150)
+volume_slider.pack(pady=20,padx=10)
 tabsystem.pack(expand=1, fill=BOTH)
 root.mainloop()
