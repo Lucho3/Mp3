@@ -1,4 +1,3 @@
-from glob import glob
 import time
 from tkinter import *
 from tkinter import filedialog
@@ -6,6 +5,9 @@ import pygame
 from tkinter import ttk
 import os
 from mutagen.mp3 import MP3
+from mutagen.id3 import ID3
+from tkinter import scrolledtext
+from lyricsgenius import Genius
 
 #functions
 
@@ -17,6 +19,17 @@ song_length=0
 
 global current_song
 current_song=None
+
+def get_song_lyrics():
+    if song_list.size():
+        genius = Genius("yKvIvpLhWT30u1NJ1zDoLd67-1MTRy-aDrE28RNo7IjPZUXvBMfoAyqr4EtY-pps")
+        song_lyr = genius.search_song(ID3(current_song)["TIT2"].text[0],ID3(current_song)["TPE1"].text[0]).lyrics[:-5]
+        while song_lyr[-1].isdigit():
+            song_lyr=song_lyr[:-1]
+
+        if song_lyr!=None:
+            song_lyrics.delete("1.0",END)
+            song_lyrics.insert("1.0",song_lyr)
 
 def add_song():
     song=filedialog.askopenfilename(initialdir='Songs/',title="Choose A Song",filetypes=(("mp3 Files","*.mp3"),))
@@ -117,6 +130,7 @@ def play():
             paused=False
             pygame.mixer.music.set_volume(volume_slider.get())
             play_time()
+            get_song_lyrics()
             
 
 
@@ -133,6 +147,8 @@ def stop():
         music_slider.config(value=0)
         current_song=None
         music_slider.config(state=DISABLED)
+        song_lyrics.delete("1.0",END)
+        song_lyrics.insert("1.0","No lyrics currently found!")
 
 def pause():
     if song_list.size() and len(song_list.curselection())>0:
@@ -162,6 +178,7 @@ def next_song():
         song_list.selection_set(next,last=None)
 
         play_time()
+        get_song_lyrics()
 
 
 def prev_song():
@@ -184,11 +201,12 @@ def prev_song():
         song_list.selection_set(next,last=None)
 
         play_time()
+        get_song_lyrics()
 
 #view
 root=Tk()
 root.title("Mp3 player")
-root.geometry("700x500")
+root.geometry("700x750")
 
 tabsystem = ttk.Notebook(root)
 
@@ -291,10 +309,6 @@ delete_song_menu.add_command(label="Remove One Song From The Playlist",command=d
 delete_song_menu.add_command(label="Remove All Songs From The Playlist",command=delete_all_songs)
 
 
-
-status_bar=Label(tab1_main,text="No Song Currently Playing ",borderwidth=1,bg='grey',fg='black',relief=GROOVE,anchor=E)
-status_bar.pack(fill=X,side=BOTTOM,ipady=2)
-
 music_slider=ttk.Scale(player_frame,from_=0,to=100,orien=HORIZONTAL,value=0,command=slide,length=500)
 music_slider.grid(row=2,column=0,pady=20)
 
@@ -302,5 +316,16 @@ volume_frame=LabelFrame(player_frame,text="Volume",bg="White")
 volume_frame.grid(row=0,column=1,padx=55)
 volume_slider=ttk.Scale(volume_frame,from_=0,to=1,orien=VERTICAL,value=1,command=volume,length=150)
 volume_slider.pack(pady=20,padx=10)
+
+song_lyrics_frame=LabelFrame(tab1_main,text="Song lyrics powerd by Genius.com",background="white")
+song_lyrics_frame.pack()
+
+song_lyrics=scrolledtext.ScrolledText(song_lyrics_frame,height=10,background="white")
+song_lyrics.insert("1.0","No lyrics currently found!")
+song_lyrics.grid(row=0,column=0,padx=10,pady=10)
+
+status_bar=Label(tab1_main,text="No Song Currently Playing ",borderwidth=1,bg='grey',fg='black',relief=GROOVE,anchor=E)
+status_bar.pack(fill=X,side=BOTTOM,ipady=2)
+
 tabsystem.pack(expand=1, fill=BOTH)
 root.mainloop()
