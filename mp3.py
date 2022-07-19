@@ -22,6 +22,7 @@ current_song=None
 
 def get_song_lyrics():
     if song_list.size():
+        song_lyrics['state']=NORMAL
         genius = Genius("yKvIvpLhWT30u1NJ1zDoLd67-1MTRy-aDrE28RNo7IjPZUXvBMfoAyqr4EtY-pps")
         song_lyr = genius.search_song(ID3(current_song)["TIT2"].text[0],ID3(current_song)["TPE1"].text[0]).lyrics[:-5]
         while song_lyr[-1].isdigit():
@@ -30,6 +31,7 @@ def get_song_lyrics():
         if song_lyr!=None:
             song_lyrics.delete("1.0",END)
             song_lyrics.insert("1.0",song_lyr)
+        song_lyrics['state']=DISABLED
 
 def add_song():
     song=filedialog.askopenfilename(initialdir='Songs/',title="Choose A Song",filetypes=(("mp3 Files","*.mp3"),))
@@ -151,7 +153,7 @@ def stop():
         song_lyrics.insert("1.0","No lyrics currently found!")
 
 def pause():
-    if song_list.size() and len(song_list.curselection())>0:
+    if song_list.size():
         global paused
         music_slider.config(state=DISABLED)
         pygame.mixer.music.pause()
@@ -298,9 +300,11 @@ root.option_add('*tearOff',FALSE)
 
 add_songs_menu=Menu(menu_songs,background='grey',foreground='black', activebackground='white',activeborderwidth=0, activeforeground='black',relief=RAISED)
 delete_song_menu=Menu(menu_songs,background='grey',foreground='black', activebackground='white',activeborderwidth=0, activeforeground='black',relief=RAISED)
+playlist_menu=Menu(menu_songs,background='grey',foreground='black', activebackground='white',activeborderwidth=0, activeforeground='black',relief=RAISED)
 
 menu_songs.add_cascade(label="Add Songs",menu=add_songs_menu)
 menu_songs.add_cascade(label="Remove Songs",menu=delete_song_menu)
+menu_songs.add_cascade(label="Playlists",menu=playlist_menu)
 
 add_songs_menu.add_command(label="Add One Song To The Playlist",command=add_song)
 add_songs_menu.add_command(label="Add Many Songs To The Playlist",command=add_songs)
@@ -308,6 +312,7 @@ add_songs_menu.add_command(label="Add Many Songs To The Playlist",command=add_so
 delete_song_menu.add_command(label="Remove One Song From The Playlist",command=delete_song)
 delete_song_menu.add_command(label="Remove All Songs From The Playlist",command=delete_all_songs)
 
+playlist_menu.add_command(label="Save playlist",command=delete_song)
 
 music_slider=ttk.Scale(player_frame,from_=0,to=100,orien=HORIZONTAL,value=0,command=slide,length=500)
 music_slider.grid(row=2,column=0,pady=20)
@@ -322,10 +327,50 @@ song_lyrics_frame.pack()
 
 song_lyrics=scrolledtext.ScrolledText(song_lyrics_frame,height=10,background="white")
 song_lyrics.insert("1.0","No lyrics currently found!")
+song_lyrics['state']=DISABLED
 song_lyrics.grid(row=0,column=0,padx=10,pady=10)
 
-status_bar=Label(tab1_main,text="No Song Currently Playing ",borderwidth=1,bg='grey',fg='black',relief=GROOVE,anchor=E)
+status_bar=Label(root,text="No Song Currently Playing ",borderwidth=1,bg='grey',fg='black',relief=GROOVE,anchor=E)
 status_bar.pack(fill=X,side=BOTTOM,ipady=2)
+
+
+
+
+
+
+playlists_frame=LabelFrame(tab2_playlists,text="Playlists",background="white",bd=0)
+playlists_frame.pack(side=LEFT,padx=60)
+
+inner_frame_playlist=Frame(playlists_frame,background="white")
+inner_frame_playlist.pack()
+
+playlist_list=Listbox(inner_frame_playlist,height=20,width=25,borderwidth=1,background="white")
+playlist_list.pack(side=LEFT,fill = BOTH)
+
+scrollbar_playlist_list = Scrollbar(inner_frame_playlist,bg="White",activebackground="#c6c9cf",bd=1,elementborderwidth=0)
+scrollbar_playlist_list.pack(side=RIGHT,fill=Y)
+
+playlist_list.config(yscrollcommand = scrollbar_playlist_list.set)
+scrollbar_playlist_list.config(command = playlist_list.yview)
+
+back_btn=Button(playlists_frame,text="Load Playlist",borderwidth=1,bg='white', activebackground='#c6c9cf',highlightthickness=1)
+back_btn.pack(padx=10,pady=10)
+
+
+
+songs_playlist_frame=LabelFrame(tab2_playlists,text="Songs In Playlist",background="white",bd=0)
+songs_playlist_frame.pack(side=RIGHT,padx=60)
+
+songs_playlist_list=Listbox(songs_playlist_frame,height=20,width=25,borderwidth=1,background="white")
+songs_playlist_list.pack(side=LEFT,fill = BOTH)
+
+scrollbar_songs_playlist_list = Scrollbar(songs_playlist_frame,bg="White",activebackground="#c6c9cf",bd=1,elementborderwidth=0)
+scrollbar_songs_playlist_list.pack(side=RIGHT,fill=Y)
+
+songs_playlist_list.config(yscrollcommand = scrollbar_songs_playlist_list.set)
+scrollbar_songs_playlist_list.config(command = songs_playlist_list.yview)
+
+
 
 tabsystem.pack(expand=1, fill=BOTH)
 root.mainloop()
