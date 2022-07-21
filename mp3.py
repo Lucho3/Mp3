@@ -5,26 +5,99 @@ import pygame
 from tkinter import ttk
 import os
 from mutagen.mp3 import MP3
-from mutagen.id3 import ID3
+from mutagen.easyid3 import EasyID3
 from tkinter import scrolledtext
 from lyricsgenius import Genius
+from Models import *
+from Repository import *
 
 #functions
 
-global paused
-paused=True
+global list_of_songs
+list_of_songs =list()
 
-global song_length
-song_length=0
+global current_song_id
+current_song_id=None
 
-global current_song
-current_song=None
+global list_of_playlists
+list_of_playlists =list()
 
+global current_playlist_id
+current_playlist_id=None
+
+def get_and_display_playlists():
+    global list_of_playlists
+    for playlist in get_all_playlists():
+        list_of_playlists.append(Playlist(playlist[0]-1,playlist[1]))
+
+
+    for playlist in list_of_playlists:
+        for song in get_all_songs_for_playlist(playlist.name):
+            playlist.list_of_songs.append(Song(song[0],song[1],song[2],song[3],song[4],song[5]))
+
+        playlist_list.insert(END,playlist.name)
+
+def insert_playlist_in_db(name):
+    global list_of_songs
+    global list_of_playlists
+
+    pl=Playlist(list_of_playlists.count,name)  
+    pl.list_of_songs=list_of_songs[:]
+    if len(list_of_songs)>0:
+        create_new_playlist(pl)
+    else:
+        create_new_empty_playlist(name)
+    
+    list_of_playlists.append(pl)
+    playlist_list.insert(END,name)
+    
+
+def create_playlist():
+    pop=Tk()
+    pop.title("Enter playlist name:")
+    pop.configure(background='white')
+    e = ttk.Entry(pop)
+    e.grid(row=0,column=0,columnspan=2,padx=10,pady=10)
+    #da kazva che e v bazata veche
+    save_btn=ttk.Button(pop,text="Save",command=lambda: insert_playlist_in_db(e.get()))
+    save_btn.grid(row=1,column=0,padx=10,pady=10)
+    close_btn=ttk.Button(pop,text="Close",command=pop.destroy)
+    close_btn.grid(row=1,column=1,padx=10,pady=10)
+
+    pop.mainloop()
+
+def get_song(song_path):
+    try:
+        id=int(song_list.size())
+    except:
+        id=None
+    try:
+        title=EasyID3(song_path)["title"][0]
+    except:
+        title=None
+    try:
+        artist=EasyID3(song_path)["artist"][0]
+    except:
+        artist=None
+    try:
+        genre=EasyID3(song_path)["genre"][0]
+    except:
+        genre=None
+    try:
+        song_length=MP3(song_path).info.length
+    except:
+        song_length=0
+
+    sg =Song(id,title,artist,genre,song_length,song_path)
+
+    return sg
+
+#opraveno
 def get_song_lyrics():
     if song_list.size():
         song_lyrics['state']=NORMAL
         genius = Genius("yKvIvpLhWT30u1NJ1zDoLd67-1MTRy-aDrE28RNo7IjPZUXvBMfoAyqr4EtY-pps")
-        song_lyr = genius.search_song(ID3(current_song)["TIT2"].text[0],ID3(current_song)["TPE1"].text[0]).lyrics[:-5]
+        song_lyr = genius.search_song(list_of_songs[current_song_id].title,list_of_songs[current_song_id].artist).lyrics[:-5]
         while song_lyr[-1].isdigit():
             song_lyr=song_lyr[:-1]
 
@@ -33,11 +106,26 @@ def get_song_lyrics():
             song_lyrics.insert("1.0",song_lyr)
         song_lyrics['state']=DISABLED
 
+#opraveno
 def add_song():
     song=filedialog.askopenfilename(initialdir='Songs/',title="Choose A Song",filetypes=(("mp3 Files","*.mp3"),))
     song_name = os.path.basename(song)
+    song_name=song_name.replace(".mp3"," ")
+    global list_of_songs
+    list_of_songs.append(get_song(os.path.abspath(song)))
     song_list.insert(END,song_name)
 
+#opraveno
+def add_songs():
+    songs=filedialog.askopenfilenames(initialdir='Songs/',title="Choose A Song",filetypes=(("mp3 Files","*.mp3"),))
+    global list_of_songs
+    for song in songs:
+        list_of_songs.append(get_song(os.path.abspath(song)))
+        song_name = os.path.basename(song)
+        song_name.replace(".mp3"," ")
+        song_list.insert(END,song_name)
+
+#opraveno
 def volume(slide_position):
     pygame.mixer.music.set_volume(volume_slider.get())
 
@@ -55,26 +143,26 @@ def volume(slide_position):
     else:
         volume_lbl.config(image=v5)
 
+#opraveno
 def slide(slide_position):
-    global current_song
-    global paused
-    if current_song!=None:
-        pygame.mixer.music.load(current_song)
+    global current_song_id
+    global list_of_songs
+    if current_song_id!=None:
+        pygame.mixer.music.load(list_of_songs[current_song_id].path)
         pygame.mixer.music.play(loops=0,start=int(music_slider.get()))
     else:
         music_slider.config(value=0)  
 
-
+#opraveno
 def play_time():
-    global current_song
-    if current_song!=None:
-        if paused==False:
+    global current_song_id
+    if current_song_id!=None:
+        if list_of_songs[current_song_id].is_paused==False:
             current_time=pygame.mixer.music.get_pos()/1000
 
             converted_time_elapsed=time.strftime("%M:%S",time.gmtime(current_time))
 
-            global song_length
-            song_length=MP3(current_song).info.length
+            song_length=list_of_songs[current_song_id].len
             converted_time_song=time.strftime("%M:%S",time.gmtime(song_length))
 
             current_time+=1
@@ -92,118 +180,114 @@ def play_time():
             
         status_bar.after(1000,play_time)
 
-def add_songs():
-    songs=filedialog.askopenfilenames(initialdir='Songs/',title="Choose A Song",filetypes=(("mp3 Files","*.mp3"),))
-    for song in songs:
-        song_name = os.path.basename(song)
-        song_list.insert(END,song_name)
-    
+
+#trqbva da maha lista
 def delete_song():
     if song_list.size() and len(song_list.curselection())>0:
+        global list_of_songs
+        list_of_songs.pop(int(song_list.curselection()[0]))
         song_list.delete(ANCHOR)
-        global current_song
-        if current_song!=None:
+        global current_song_id
+        if current_song_id!=None:
             stop()
 
+#opraveno
 def delete_all_songs():
     if song_list.size():
-        global current_song
-        if current_song!=None:
+        global list_of_songs
+        global current_song_id
+        if current_song_id!=None:
             stop()
         song_list.delete(0,END)
+        list_of_songs=list()
 
 
+#opravena sprqmo refaktor
 def play():
     if song_list.size():
-        global current_song
-        global paused
+        global list_of_songs
+        global current_song_id
+
         play_btn.configure(image=pause_btn_img)
         music_slider.config(state=NORMAL)
-        if current_song!=None:
+        
+        if current_song_id!=None:
             pygame.mixer.music.unpause()
-            paused=False
+            list_of_songs[current_song_id].is_paused=False
         else:
             if len(song_list.curselection())==0:
                 song_list.activate(0)
                 song_list.selection_set(0,last=None)
-            current_song=f"Songs/{song_list.get(ACTIVE)}"
-            pygame.mixer.music.load(current_song)
+            current_song_id=int(song_list.curselection()[0])
+            pygame.mixer.music.load(list_of_songs[current_song_id].path)
             pygame.mixer.music.play(loops=0)
-            paused=False
+            list_of_songs[current_song_id].is_paused=False
             pygame.mixer.music.set_volume(volume_slider.get())
             play_time()
             get_song_lyrics()
             
 
-
+#opraveno
 def stop():
     if song_list.size():
         pygame.mixer.music.stop()
         song_list.select_clear(ACTIVE)
         song_list.selection_clear(0, 'end')
-        global paused
-        global current_song
-        paused=True
+        global current_song_id
+        global list_of_songs
+        list_of_songs[current_song_id].is_paused=True
         play_btn.configure(image=play_btn_img)
         status_bar.config(text="No Song Currently Playing ")
         music_slider.config(value=0)
-        current_song=None
+        current_song_id=None
         music_slider.config(state=DISABLED)
+
+        song_lyrics.config(state=NORMAL)
         song_lyrics.delete("1.0",END)
         song_lyrics.insert("1.0","No lyrics currently found!")
+        song_lyrics.config(state=DISABLED)
 
+#opraveno
 def pause():
     if song_list.size():
-        global paused
+        global current_song_id
+        global list_of_songs
         music_slider.config(state=DISABLED)
         pygame.mixer.music.pause()
         play_btn.configure(image=play_btn_img)
-        paused=True
+        list_of_songs[current_song_id].is_paused=True
 
-def next_song():
+
+def next_song(where_to_go):
     if song_list.size():
-        global current_song
+        global current_song_id
         music_slider.config(state=NORMAL)
-        global paused
-        paused=False
+        global list_of_songs
+        list_of_songs[current_song_id].is_paused=False
+
         play_btn.configure(image=pause_btn_img)
-        next=0
-        if len(song_list.curselection())>0 and song_list.curselection()[0]<song_list.size()-1:
-            next=song_list.curselection()
-            next=next[0]+1
-        current_song=f"Songs/{song_list.get(next)}"
-        pygame.mixer.music.load(current_song)
+        
+        #trqbva da se opravq
+        if where_to_go=="next":
+            current_song_id=0
+            if len(song_list.curselection())>0 and song_list.curselection()[0]<song_list.size()-1:
+                current_song_id=song_list.curselection()[0]+1
+        else:
+            current_song_id=song_list.size()-1
+            if len(song_list.curselection())>0 and song_list.curselection()[0]>0:
+                current_song_id=song_list.curselection()[0]-1
+        
+        list_of_songs[current_song_id].is_paused=False
+        pygame.mixer.music.load(list_of_songs[current_song_id].path)
         pygame.mixer.music.play(loops=0)
         music_slider.config(value=0) 
         song_list.select_clear(0,END)
-        song_list.activate(next)
-        song_list.selection_set(next,last=None)
+        song_list.activate(current_song_id)
+        song_list.selection_set(current_song_id,last=None)
 
         play_time()
         get_song_lyrics()
 
-
-def prev_song():
-    if song_list.size():
-        global current_song
-        music_slider.config(state=NORMAL)
-        global paused
-        paused=False
-        play_btn.configure(image=pause_btn_img)
-        next=song_list.size()-1
-        if len(song_list.curselection())>0 and song_list.curselection()[0]>0:
-            next=song_list.curselection()
-            next=next[0]-1
-        current_song=f"Songs/{song_list.get(next)}"
-        pygame.mixer.music.load(current_song)
-        pygame.mixer.music.play(loops=0)
-        music_slider.config(value=0) 
-        song_list.select_clear(0,END)
-        song_list.activate(next)
-        song_list.selection_set(next,last=None)
-
-        play_time()
-        get_song_lyrics()
 
 #view
 root=Tk()
@@ -284,11 +368,11 @@ volume_lbl.grid(row=1,column=1,pady=10)
 buttons_frame=ttk.Frame(player_frame)
 buttons_frame.grid(row=1,column=0,pady=10)
 
-back_btn=Button(buttons_frame,command=prev_song,image=back_btn_img,borderwidth=0,bg='white', activebackground='white',highlightthickness=0)
+back_btn=Button(buttons_frame,command=lambda: next_song("prev"),image=back_btn_img,borderwidth=0,bg='white', activebackground='white',highlightthickness=0)
 back_btn.grid(row=0,column=0,padx=10)
-forward_btn=Button(buttons_frame,command=next_song, image=forward_btn_img,borderwidth=0,bg='white', activebackground='white',highlightthickness=0)
+forward_btn=Button(buttons_frame,command=lambda: next_song("next"), image=forward_btn_img,borderwidth=0,bg='white', activebackground='white',highlightthickness=0)
 forward_btn.grid(row=0,column=1,padx=10)
-play_btn=Button(buttons_frame,command=lambda: play() if paused else pause(),image=play_btn_img,borderwidth=0,bg='white', activebackground='white',highlightthickness=0)
+play_btn=Button(buttons_frame,command=lambda: play() if (current_song_id==None or list_of_songs[current_song_id].is_paused) else pause(),image=play_btn_img,borderwidth=0,bg='white', activebackground='white',highlightthickness=0)
 play_btn.grid(row=0,column=2,padx=10)
 stop_btn=Button(buttons_frame,command=stop,image=stop_btn_img,borderwidth=0,bg='white', activebackground='white',highlightthickness=0)
 stop_btn.grid(row=0,column=4,padx=10)
@@ -312,7 +396,7 @@ add_songs_menu.add_command(label="Add Many Songs To The Playlist",command=add_so
 delete_song_menu.add_command(label="Remove One Song From The Playlist",command=delete_song)
 delete_song_menu.add_command(label="Remove All Songs From The Playlist",command=delete_all_songs)
 
-playlist_menu.add_command(label="Save playlist",command=delete_song)
+playlist_menu.add_command(label="Save playlist",command=create_playlist)
 
 music_slider=ttk.Scale(player_frame,from_=0,to=100,orien=HORIZONTAL,value=0,command=slide,length=500)
 music_slider.grid(row=2,column=0,pady=20)
@@ -371,6 +455,6 @@ songs_playlist_list.config(yscrollcommand = scrollbar_songs_playlist_list.set)
 scrollbar_songs_playlist_list.config(command = songs_playlist_list.yview)
 
 
-
+get_and_display_playlists()
 tabsystem.pack(expand=1, fill=BOTH)
 root.mainloop()
