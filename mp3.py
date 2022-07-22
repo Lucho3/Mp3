@@ -25,6 +25,43 @@ list_of_playlists =list()
 global current_playlist_id
 current_playlist_id=None
 
+def eject_playlist():
+    global current_playlist_id
+    if current_playlist_id!=None:
+        global current_song_id
+        global list_of_songs
+        if current_song_id!=None:
+            stop()
+        current_playlist_id=None
+        list_of_songs =list()
+        song_list.delete(0,END)
+        songs_playlist_list.delete(0,END)
+        status_bar_playlist.config(text="No Playlist currently loaded")
+    else:
+        popup("You must load a playlist!")
+
+def popup(text):
+    pop=Tk()
+    pop.title("Error")
+    pop.configure(background='white')
+    e = Label(pop,text=text,background='white')
+    e.grid(row=0,column=0,padx=10,pady=10)
+    close_btn=ttk.Button(pop,text="Close",command=pop.destroy)
+    close_btn.grid(row=1,column=0,padx=10,pady=10)
+
+    pop.mainloop()
+
+
+def delete_playlist():
+    global current_playlist_id
+    global list_of_playlists
+    if current_playlist_id!=None:
+        delete_playlist_from_db(list_of_playlists[current_playlist_id].id+1)
+        eject_playlist()
+    else:
+        popup("You must load a playlist!")
+        
+
 def get_and_display_playlists():
     global list_of_playlists
     for playlist in get_all_playlists():
@@ -37,19 +74,44 @@ def get_and_display_playlists():
 
         playlist_list.insert(END,playlist.name)
 
-def insert_playlist_in_db(name):
-    global list_of_songs
-    global list_of_playlists
+def display_songs_in_playlist(x):
+    if len(playlist_list.curselection())>0:
+        global list_of_playlists
+        playlist=list_of_playlists[int(playlist_list.curselection()[0])]
+        songs_playlist_list.delete(0,END)
+        for song in playlist.list_of_songs:
+            songs_playlist_list.insert(END,song.title)
 
-    pl=Playlist(list_of_playlists.count,name)  
-    pl.list_of_songs=list_of_songs[:]
-    if len(list_of_songs)>0:
-        create_new_playlist(pl)
+def load_playlist():
+    if len(playlist_list.curselection())>0:
+        global current_playlist_id
+        current_playlist_id=int(playlist_list.curselection()[0])
+        global list_of_playlists
+        global list_of_songs
+        list_of_songs=list_of_playlists[current_playlist_id].list_of_songs
+
+        song_list.delete(0,END)
+        for song in list_of_songs:
+            song_list.insert(END,song.title)
+        songs_playlist_list.delete(0,END)
+        status_bar_playlist.config(text=f'Playlist Loaded: {list_of_playlists[current_playlist_id].name} ')
+
+
+def insert_playlist_in_db(name,window):
+    if name!='' and name!=None:
+        global list_of_songs
+        global list_of_playlists
+
+        pl=Playlist(list_of_playlists.count,name)  
+        pl.list_of_songs=list_of_songs[:]
+        if create_new_playlist(pl)!=None:
+            list_of_playlists.append(pl)
+            playlist_list.insert(END,name)
+            window.destroy()
+        else:
+            popup("The name is already taken!")
     else:
-        create_new_empty_playlist(name)
-    
-    list_of_playlists.append(pl)
-    playlist_list.insert(END,name)
+        popup("You must enter name!")
     
 
 def create_playlist():
@@ -58,13 +120,23 @@ def create_playlist():
     pop.configure(background='white')
     e = ttk.Entry(pop)
     e.grid(row=0,column=0,columnspan=2,padx=10,pady=10)
-    #da kazva che e v bazata veche
-    save_btn=ttk.Button(pop,text="Save",command=lambda: insert_playlist_in_db(e.get()))
+     #da kazva che e v bazata veche
+    save_btn=ttk.Button(pop,text="Save",command=lambda: insert_playlist_in_db(e.get(),pop))
     save_btn.grid(row=1,column=0,padx=10,pady=10)
     close_btn=ttk.Button(pop,text="Close",command=pop.destroy)
     close_btn.grid(row=1,column=1,padx=10,pady=10)
 
     pop.mainloop()
+
+def edit_playlist():
+    global current_playlist_id
+    if current_playlist_id!=None:
+        global list_of_playlists
+        update_playlist_db(list_of_playlists[current_playlist_id])
+        songs_playlist_list.delete(0,END)
+        popup("OK")
+    else:
+        popup("You must load a playlist!")
 
 def get_song(song_path):
     try:
@@ -167,14 +239,14 @@ def play_time():
 
             current_time+=1
             if int(music_slider.get())==int(song_length):
-                next_song()
+                next_song("next")
                 return
             elif int(music_slider.get())==int(current_time):
                 music_slider.config(to=int(song_length),value=int(current_time))
             else:
                 music_slider.config(to=int(song_length),value=int(music_slider.get()))
                 converted_time_elapsed=time.strftime("%M:%S",time.gmtime(int(music_slider.get())))
-                status_bar.config(text=f'Time Elapsed: {converted_time_elapsed} of {converted_time_song} ')
+                status_bar.config(text=f'{list_of_songs[current_song_id].title} - {list_of_songs[current_song_id].artist}/Time Elapsed: {converted_time_elapsed} of {converted_time_song} ')
                 next_time=int(music_slider.get())+1
                 music_slider.config(value=next_time)      
             
@@ -263,8 +335,6 @@ def next_song(where_to_go):
         global current_song_id
         music_slider.config(state=NORMAL)
         global list_of_songs
-        list_of_songs[current_song_id].is_paused=False
-
         play_btn.configure(image=pause_btn_img)
         
         #trqbva da se opravq
@@ -293,6 +363,7 @@ def next_song(where_to_go):
 root=Tk()
 root.title("Mp3 player")
 root.geometry("700x750")
+root. resizable(width=False, height=False)
 
 tabsystem = ttk.Notebook(root)
 
@@ -396,14 +467,16 @@ add_songs_menu.add_command(label="Add Many Songs To The Playlist",command=add_so
 delete_song_menu.add_command(label="Remove One Song From The Playlist",command=delete_song)
 delete_song_menu.add_command(label="Remove All Songs From The Playlist",command=delete_all_songs)
 
-playlist_menu.add_command(label="Save playlist",command=create_playlist)
+playlist_menu.add_command(label="Save New Playlist",command=create_playlist)
+playlist_menu.add_command(label="Update Playlist",command=edit_playlist)
+playlist_menu.add_command(label="Delete Playlist",command=delete_playlist)
 
 music_slider=ttk.Scale(player_frame,from_=0,to=100,orien=HORIZONTAL,value=0,command=slide,length=500)
 music_slider.grid(row=2,column=0,pady=20)
 
 volume_frame=LabelFrame(player_frame,text="Volume",bg="White")
 volume_frame.grid(row=0,column=1,padx=55)
-volume_slider=ttk.Scale(volume_frame,from_=0,to=1,orien=VERTICAL,value=1,command=volume,length=150)
+volume_slider=ttk.Scale(volume_frame,from_=1,to=0,orien=VERTICAL,value=1,command=volume,length=150)
 volume_slider.pack(pady=20,padx=10)
 
 song_lyrics_frame=LabelFrame(tab1_main,text="Song lyrics powerd by Genius.com",background="white")
@@ -414,12 +487,13 @@ song_lyrics.insert("1.0","No lyrics currently found!")
 song_lyrics['state']=DISABLED
 song_lyrics.grid(row=0,column=0,padx=10,pady=10)
 
-status_bar=Label(root,text="No Song Currently Playing ",borderwidth=1,bg='grey',fg='black',relief=GROOVE,anchor=E)
-status_bar.pack(fill=X,side=BOTTOM,ipady=2)
 
-
-
-
+statbar_frame=ttk.Frame(root)
+statbar_frame.pack(fill=X,side=BOTTOM)
+status_bar=Label(statbar_frame,text="No Song Currently Playing ",borderwidth=1,bg='grey',fg='black',relief=GROOVE,anchor=E)
+status_bar.pack(side=RIGHT,expand=True,fill=X)
+status_bar_playlist=Label(statbar_frame,text="No Playlist currently loaded",borderwidth=1,bg='grey',fg='black',relief=GROOVE,anchor=E)
+status_bar_playlist.pack(side=LEFT,expand=True,fill=X)
 
 
 playlists_frame=LabelFrame(tab2_playlists,text="Playlists",background="white",bd=0)
@@ -428,8 +502,10 @@ playlists_frame.pack(side=LEFT,padx=60)
 inner_frame_playlist=Frame(playlists_frame,background="white")
 inner_frame_playlist.pack()
 
-playlist_list=Listbox(inner_frame_playlist,height=20,width=25,borderwidth=1,background="white")
+playlist_list=Listbox(inner_frame_playlist,height=20,width=25,borderwidth=1,background="white",selectbackground='#c6c9cf')
 playlist_list.pack(side=LEFT,fill = BOTH)
+playlist_list.bind('<Double-Button>',display_songs_in_playlist)
+
 
 scrollbar_playlist_list = Scrollbar(inner_frame_playlist,bg="White",activebackground="#c6c9cf",bd=1,elementborderwidth=0)
 scrollbar_playlist_list.pack(side=RIGHT,fill=Y)
@@ -437,23 +513,28 @@ scrollbar_playlist_list.pack(side=RIGHT,fill=Y)
 playlist_list.config(yscrollcommand = scrollbar_playlist_list.set)
 scrollbar_playlist_list.config(command = playlist_list.yview)
 
-back_btn=Button(playlists_frame,text="Load Playlist",borderwidth=1,bg='white', activebackground='#c6c9cf',highlightthickness=1)
-back_btn.pack(padx=10,pady=10)
+load_btn=Button(playlists_frame,text="Load Playlist",borderwidth=1,bg='white', activebackground='#c6c9cf',highlightthickness=1,command=load_playlist)
+load_btn.pack(padx=10,pady=10)
 
 
 
 songs_playlist_frame=LabelFrame(tab2_playlists,text="Songs In Playlist",background="white",bd=0)
 songs_playlist_frame.pack(side=RIGHT,padx=60)
 
-songs_playlist_list=Listbox(songs_playlist_frame,height=20,width=25,borderwidth=1,background="white")
+inner_frame_songs=Frame(songs_playlist_frame,background="white")
+inner_frame_songs.pack()
+
+songs_playlist_list=Listbox(inner_frame_songs,height=20,width=25,borderwidth=1,background="white", selectbackground='#c6c9cf')
 songs_playlist_list.pack(side=LEFT,fill = BOTH)
 
-scrollbar_songs_playlist_list = Scrollbar(songs_playlist_frame,bg="White",activebackground="#c6c9cf",bd=1,elementborderwidth=0)
+scrollbar_songs_playlist_list = Scrollbar(inner_frame_songs,bg="White",activebackground="#c6c9cf",bd=1,elementborderwidth=0)
 scrollbar_songs_playlist_list.pack(side=RIGHT,fill=Y)
 
 songs_playlist_list.config(yscrollcommand = scrollbar_songs_playlist_list.set)
 scrollbar_songs_playlist_list.config(command = songs_playlist_list.yview)
 
+eject_btn=Button(songs_playlist_frame,text="Eject Playlist",borderwidth=1,bg='white', activebackground='#c6c9cf',highlightthickness=1,command=eject_playlist)
+eject_btn.pack(padx=10,pady=10)
 
 get_and_display_playlists()
 tabsystem.pack(expand=1, fill=BOTH)
