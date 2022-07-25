@@ -146,7 +146,7 @@ def update_playlist_db(playlist):
         if song_id not in all_songs_id:
             insert_song_into_playlist(song_id,playlist_id)
 
-def delete_playlist_from_db(playlist_id):
+def delete_playlist_from_db(playlist_name):
     conn = None
     try:
         conn = sqlite3.connect("playlistsDB.sqlite")
@@ -155,7 +155,7 @@ def delete_playlist_from_db(playlist_id):
 
     cur = conn.cursor()
     try:
-        cur.execute('DELETE FROM playlists WHERE id=?;',(playlist_id,))
+        cur.execute('DELETE FROM playlists WHERE name=?;',(playlist_name,))
     except:
         return None
     conn.commit()
