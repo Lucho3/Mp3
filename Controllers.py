@@ -10,6 +10,8 @@ from Models import *
 from Repository import *
 from View import *
 
+
+#This is the main controller for the app it makes everithnig real
 class ControllerApp():
     def __init__(self, view):
         self.view = view
@@ -19,8 +21,7 @@ class ControllerApp():
         self.current_playlist_id=None
         self.is_next=False
 
-
-
+#Ejects currently loaded playlist and clears songs
     def eject_playlist(self):
         if self.current_playlist_id!=None:
             if self.current_song_id!=None:
@@ -33,20 +34,17 @@ class ControllerApp():
         else:
             self.view.popup("You must load a playlist!")
 
-
-
-
+#Deletes playlist that is currently loaded and ejects it 
     def delete_playlist(self):
         if self.current_playlist_id!=None:
             name=self.list_of_playlists[self.current_playlist_id].name
             delete_playlist_from_db(name)
             self.view.tab2_playlists.playlist_frame.list.delete(self.current_playlist_id)
-            #trqbva da go opr
             self.eject_playlist()
         else:
             self.view.popup("You must load a playlist!")
             
-
+#Displays all playlists from db
     def get_and_display_playlists(self):
         for playlist in get_all_playlists():
             self.list_of_playlists.append(Playlist(playlist[0]-1,playlist[1]))
@@ -58,6 +56,7 @@ class ControllerApp():
 
             self.view.tab2_playlists.playlist_frame.list.insert(END,playlist.name)
 
+#Displays all songs for playlists from db
     def display_songs_in_playlist(self,x):
         if len(self.view.tab2_playlists.playlist_frame.list.curselection())>0:
             playlist=self.list_of_playlists[int(self.view.tab2_playlists.playlist_frame.list.curselection()[0])]
@@ -65,6 +64,7 @@ class ControllerApp():
             for song in playlist.list_of_songs:
                 self.view.tab2_playlists.pl_songs_frame.list.insert(END,song.title)
 
+#Loads playlist
     def load_playlist(self):
         if len(self.view.tab2_playlists.playlist_frame.list.curselection())>0:
             self.current_playlist_id=int(self.view.tab2_playlists.playlist_frame.list.curselection()[0])
@@ -77,6 +77,7 @@ class ControllerApp():
             self.view.status_frame.status_bar_playlist.config(text=f'Playlist Loaded: {self.list_of_playlists[self.current_playlist_id].name} ')
 
 
+#Saves playlist in DB
     def insert_playlist_in_db(self,name,window):
         if name!='' and name!=None:
             pl=Playlist(self.list_of_playlists.count,name)  
@@ -91,7 +92,7 @@ class ControllerApp():
             self.view.popup("You must enter name!")
         
 
-
+#Edits playlists(add or remove song)
     def edit_playlist(self):
         if self.current_playlist_id!=None:
             update_playlist_db(self.list_of_playlists[self.current_playlist_id])
@@ -100,6 +101,7 @@ class ControllerApp():
         else:
             self.view.popup("You must load a playlist!")
 
+#Gets all ID3 tags for a song
     def get_song(self,song_path):
         try:
             id=int(self.view.tab1_main.songlist_frame.song_list.size())
@@ -126,6 +128,7 @@ class ControllerApp():
 
         return sg
 
+#By using genius.com retrieves the lyrics for a song
     def get_song_lyrics(self):
         if self.view.tab1_main.songlist_frame.song_list.size():
             self.view.tab1_main.lyrics_frame.song_lyrics['state']=NORMAL
@@ -139,6 +142,7 @@ class ControllerApp():
                 self.view.tab1_main.lyrics_frame.song_lyrics.insert("1.0",song_lyr)
             self.view.tab1_main.lyrics_frame.song_lyrics['state']=DISABLED
 
+#Adds to be played
     def add_song(self):
         song=filedialog.askopenfilename(initialdir='Songs/',title="Choose A Song",filetypes=(("mp3 Files","*.mp3"),))
         song_name = os.path.basename(song)
@@ -153,8 +157,9 @@ class ControllerApp():
         self.list_of_songs.append(song)
         self.view.tab1_main.songlist_frame.song_list.insert(END,song_name)
 
+#Adds many songs to be played
     def add_songs(self):
-        songs=filedialog.askopenfilenames(initialdir='Songs/',title="Choose A Song",filetypes=(("mp3 Files","*.mp3"),))
+        songs=filedialog.askopenfilenames(initialdir='Songs/',title="Choose Songs",filetypes=(("mp3 Files","*.mp3"),))
         list_of_added_songs=[self.get_song(os.path.abspath(song)) for song in songs]
 
         for added_song in list_of_added_songs:
@@ -172,7 +177,7 @@ class ControllerApp():
 
 
            
-
+#Controlls the volume of the app and changes the picture
     def volume(self,slide_position):
         pygame.mixer.music.set_volume(self.view.tab1_main.volume_frame.volume_slider.get())
 
@@ -190,6 +195,7 @@ class ControllerApp():
         else:
             self.view.tab1_main.volume_frame.volume_lbl.config(image=self.view.list_of_volume_pics[5])
 
+#Controlls the slider of the app
     def slide(self,slide_position):
         if self.current_song_id!=None:
             pygame.mixer.music.load(self.list_of_songs[self.current_song_id].path)
@@ -197,6 +203,7 @@ class ControllerApp():
         else:
             self.view.tab1_main.music_slider.config(value=0)  
 
+#Moves slider and changes elapsed time
     def play_time(self):
         if self.current_song_id!=None:
             if self.list_of_songs[self.current_song_id].is_paused==False:
@@ -223,7 +230,7 @@ class ControllerApp():
                 self.view.status_frame.status_bar.after(1000,self.play_time)
         self.is_next=False
 
-
+#Deletes selected song from playlist/to be played
     def delete_song(self):
         if self.view.tab1_main.songlist_frame.song_list.size() and len(self.view.tab1_main.songlist_frame.song_list.curselection())>0:
             if self.current_playlist_id!=None:
@@ -238,6 +245,7 @@ class ControllerApp():
         else:
             self.view.popup("You must select a song!")
 
+#Deletes all songs from playlist/to be played
     def delete_all_songs(self):
         if self.view.tab1_main.songlist_frame.song_list.size():
             if self.current_song_id!=None:
@@ -247,7 +255,7 @@ class ControllerApp():
             self.view.tab1_main.songlist_frame.song_list.delete(0,END)
             self.list_of_songs=list()
 
-
+#This method plays a selected song
     def play(self):
         if self.view.tab1_main.songlist_frame.song_list.size():
             self.view.tab1_main.buttons_frame.play_btn.configure(image=self.view.list_of_buttons[3])
@@ -267,7 +275,8 @@ class ControllerApp():
                 pygame.mixer.music.set_volume(self.view.tab1_main.volume_frame.volume_slider.get())
                 self.play_time()
                 self.get_song_lyrics()
-                
+
+ #This method stops a song and ejects it from currently played               
     def stop(self):
         if self.view.tab1_main.songlist_frame.song_list.size():
             self.is_next=False
@@ -286,6 +295,7 @@ class ControllerApp():
             self.view.tab1_main.lyrics_frame.song_lyrics.insert("1.0","No lyrics currently found!")
             self.view.tab1_main.lyrics_frame.song_lyrics.config(state=DISABLED)
 
+#This method pauses the song
     def pause(self):
         if self.view.tab1_main.songlist_frame.song_list.size():
             self.view.tab1_main.music_slider.config(state=DISABLED)
@@ -293,63 +303,34 @@ class ControllerApp():
             self.view.tab1_main.buttons_frame.play_btn.configure(image=self.view.list_of_buttons[2])
             self.list_of_songs[self.current_song_id].is_paused=True
 
-
+#This method moves to the next song
     def next_song(self,where_to_go):
-        if self.view.tab1_main.songlist_frame.song_list.size():
-            if self.current_song_id!=None:
-                 self.is_next=True
-            self.view.tab1_main.music_slider.config(state=NORMAL)
-            self.view.tab1_main.buttons_frame.play_btn.configure(image=self.view.list_of_buttons[3])
-            
-            if where_to_go=="next":
-                self.current_song_id=0
-                if len(self.view.tab1_main.songlist_frame.song_list.curselection())>0 and self.view.tab1_main.songlist_frame.song_list.curselection()[0]<self.view.tab1_main.songlist_frame.song_list.size()-1:
-                    self.current_song_id=self.view.tab1_main.songlist_frame.song_list.curselection()[0]+1
-            else:
-                self.current_song_id=self.view.tab1_main.songlist_frame.song_list.size()-1
-                if len(self.view.tab1_main.songlist_frame.song_list.curselection())>0 and self.view.tab1_main.songlist_frame.song_list.curselection()[0]>0:
-                    self.current_song_id=self.view.tab1_main.songlist_frame.song_list.curselection()[0]-1
-            
-            self.list_of_songs[self.current_song_id].is_paused=False
-            pygame.mixer.music.load(self.list_of_songs[self.current_song_id].path)
-            pygame.mixer.music.play(loops=0)
-            self.view.tab1_main.music_slider.config(value=0) 
-            self.view.tab1_main.songlist_frame.song_list.select_clear(0,END)
-            self.view.tab1_main.songlist_frame.song_list.activate(self.current_song_id)
-            self.view.tab1_main.songlist_frame.song_list.selection_set(self.current_song_id,last=None)
-            
-            self.play_time()
-            self.get_song_lyrics()
-    
-'''
-def next_song(self,where_to_go):
-        if self.view.tab1_main.songlist_frame.song_list.size():
-            if self.current_song_id!=None:
-                 self.is_next=True
-            self.view.tab1_main.music_slider.config(state=NORMAL)
-            self.view.tab1_main.buttons_frame.play_btn.configure(image=self.view.list_of_buttons[3])
-            
-            if self.current_song_id==None:
-                self.current_song_id=0
-            if where_to_go=="next":
-                self.current_song_id+=1                            
-                if self.current_song_id>len(self.list_of_songs)-1 and self.current_song_id!=0:
-                    self.current_song_id=0
-            else:
-                self.current_song_id=len(self.list_of_songs)-1
-                if  self.current_song_id>0:
-                    self.current_song_id=self.current_song_id-1
-                    
-            
-            self.list_of_songs[self.current_song_id].is_paused=False
-            pygame.mixer.music.load(self.list_of_songs[self.current_song_id].path)
-            pygame.mixer.music.play(loops=0)
-            self.view.tab1_main.music_slider.config(value=0) 
-            self.view.tab1_main.songlist_frame.song_list.select_clear(0,END)
-            self.view.tab1_main.songlist_frame.song_list.activate(self.current_song_id)
-            self.view.tab1_main.songlist_frame.song_list.selection_set(self.current_song_id,last=None)
-            
-            self.play_time()
-            self.get_song_lyrics()
-
-'''
+            if self.view.tab1_main.songlist_frame.song_list.size():
+                if self.current_song_id!=None:
+                    self.is_next=True
+                self.view.tab1_main.music_slider.config(state=NORMAL)
+                self.view.tab1_main.buttons_frame.play_btn.configure(image=self.view.list_of_buttons[3])
+                
+                
+                if where_to_go=="next":
+                    if self.current_song_id==None or self.current_song_id==len(self.list_of_songs)-1:
+                        self.current_song_id=0                                          
+                    elif self.current_song_id<len(self.list_of_songs)-1:
+                        self.current_song_id+=1
+                else:
+                    if self.current_song_id==None or self.current_song_id==0:
+                        self.current_song_id=len(self.list_of_songs)-1                                        
+                    elif  self.current_song_id>0:
+                        self.current_song_id=self.current_song_id-1
+                        
+                
+                self.list_of_songs[self.current_song_id].is_paused=False
+                pygame.mixer.music.load(self.list_of_songs[self.current_song_id].path)
+                pygame.mixer.music.play(loops=0)
+                self.view.tab1_main.music_slider.config(value=0) 
+                self.view.tab1_main.songlist_frame.song_list.select_clear(0,END)
+                self.view.tab1_main.songlist_frame.song_list.activate(self.current_song_id)
+                self.view.tab1_main.songlist_frame.song_list.selection_set(self.current_song_id,last=None)
+                
+                self.play_time()
+                self.get_song_lyrics()

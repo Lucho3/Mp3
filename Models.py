@@ -1,3 +1,4 @@
+#Model for songs
 class Song:
     def __init__(self,id,title,artist,genre,len,path):
         self.id=id
@@ -8,6 +9,7 @@ class Song:
         self.path = path
         self.is_paused=True
 
+#Model for playlists
 class Playlist:
     def __init__(self,id,name):
         self.id=id

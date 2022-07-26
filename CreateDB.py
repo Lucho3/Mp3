@@ -18,7 +18,6 @@ def sql_tables(con):
 
     cursorObj = con.cursor()
 
-    #refactor db
     cursorObj.execute("CREATE TABLE IF NOT EXISTS songs(id INTEGER PRIMARY KEY AUTOINCREMENT, title TEXT,artist text, genre,len REAL ,path TEXT UNIQUE, UNIQUE(title, artist));")
     cursorObj.execute("CREATE TABLE IF NOT EXISTS playlists(id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT UNIQUE);")
 

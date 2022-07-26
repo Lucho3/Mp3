@@ -3,6 +3,7 @@ from sqlite3 import Error
 from Models import *
 
 
+#This method creates an empty playlist if the neame is not taken
 def create_new_empty_playlist(playlist_name):
     conn = None
     try:
@@ -18,6 +19,7 @@ def create_new_empty_playlist(playlist_name):
     conn.commit()
     return cur.lastrowid
 
+#This method returns all playlists in the DB
 def get_all_playlists():
     conn = None
     try:
@@ -32,6 +34,7 @@ def get_all_playlists():
     except:
         return None
 
+#This method gets all songs for a playlist by its name
 def get_all_songs_for_playlist(playlist_name):
     conn = None
     try:
@@ -46,6 +49,7 @@ def get_all_songs_for_playlist(playlist_name):
     except:
         return None
 
+#This method inserts song in DB and returns its id
 def insert_song(sg):
     conn = None
     try:
@@ -61,6 +65,7 @@ def insert_song(sg):
     conn.commit()
     return cur.lastrowid
 
+#This method inserts song into playlist 
 def insert_song_into_playlist(song_id,playlist_id):
     conn = None
     try:
@@ -75,6 +80,7 @@ def insert_song_into_playlist(song_id,playlist_id):
         return None
     conn.commit()
 
+#This method gets song id by artist and titel because they are unique constraints
 def get_id_of_song(title,artist):
     conn = None
     try:
@@ -88,6 +94,7 @@ def get_id_of_song(title,artist):
     except:
         return None
 
+#This method creates a playlist witch is not empty
 def create_new_playlist(playlist):
     playlist_id=create_new_empty_playlist(playlist.name)
     if playlist_id==None:
@@ -99,7 +106,8 @@ def create_new_playlist(playlist):
             insert_song_into_playlist(song_id,playlist_id)
             
     return playlist_id
-    
+
+#This method removes a song from playlist    
 def remove_song_from_playlist(song_id,playlist_id):
     conn = None
     try:
@@ -114,6 +122,7 @@ def remove_song_from_playlist(song_id,playlist_id):
         return None
     conn.commit()
 
+#This method returns playlist id 
 def get_playlist_id(playlist_name):
     conn = None
     try:
@@ -127,6 +136,7 @@ def get_playlist_id(playlist_name):
     except:
         return None
 
+#This method updates a playlist (added or emoved songs)
 def update_playlist_db(playlist):
     all_songs=get_all_songs_for_playlist(playlist.name)
     playlist_id=get_playlist_id(playlist.name)
@@ -146,6 +156,7 @@ def update_playlist_db(playlist):
         if song_id not in all_songs_id:
             insert_song_into_playlist(song_id,playlist_id)
 
+#This method deletes a song from the DB
 def delete_playlist_from_db(playlist_name):
     conn = None
     try:
