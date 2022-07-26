@@ -6,6 +6,8 @@ from Models import *
 from Repository import *
 from Controllers import *
 
+
+#This class is the widget for playlist displayer and the songs in playlist displayer
 class PlaylistFrame(LabelFrame):
      def __init__(self, parent,button_command,btn_text,text_info):
         super().__init__(parent,text=text_info,background="white",bd=0)
@@ -25,6 +27,7 @@ class PlaylistFrame(LabelFrame):
         self.btn=Button(self,text=btn_text,borderwidth=1,bg='white', activebackground='#c6c9cf',highlightthickness=1,command=button_command)
         self.btn.pack(padx=10,pady=10)
 
+#This class creates the status bar in the bottom of the app
 class StatusFrame(ttk.Frame):
     def __init__(self, parent):
         super().__init__(parent)
@@ -35,6 +38,7 @@ class StatusFrame(ttk.Frame):
         self.status_bar_playlist=Label(self,text="No Playlist currently loaded",borderwidth=1,bg='grey',fg='black',relief=GROOVE,anchor=E)
         self.status_bar_playlist.pack(side=LEFT,expand=True,fill=X)
 
+#This class creates the menubar for the app
 class MenuBar(Menu):
     def __init__(self, parent,controller):
         super().__init__(parent,background='grey', foreground='black', activebackground='white', activeforeground='black',borderwidth=0,relief=FLAT,activeborderwidth=0)
@@ -49,7 +53,6 @@ class MenuBar(Menu):
         self.add_cascade(label="Remove Songs",menu=self.delete_song_menu)
         self.add_cascade(label="Playlists",menu=self.playlist_menu)
 
-        #komandite trqbva da idvat ot kontrolera
         self.add_songs_menu.add_command(label="Add One Song To The Playlist",command=controller.add_song)
         self.add_songs_menu.add_command(label="Add Many Songs To The Playlist",command=controller.add_songs)
 
@@ -60,7 +63,7 @@ class MenuBar(Menu):
         self.playlist_menu.add_command(label="Update Playlist",command=controller.edit_playlist)
         self.playlist_menu.add_command(label="Delete Playlist",command=controller.delete_playlist)
 
-    
+#This method creates pop up for playlist creation    
     def create_playlist(self):
         pop=Tk()
         pop.title("Enter playlist name:")
@@ -75,6 +78,8 @@ class MenuBar(Menu):
 
         pop.mainloop()
 
+
+#This class creates the lyrics widget
 class LyricsFrame(LabelFrame):
     def __init__(self, parent):
         super().__init__(parent,text="Song lyrics powerd by Genius.com",background="white")
@@ -83,6 +88,7 @@ class LyricsFrame(LabelFrame):
         self.song_lyrics['state']=DISABLED
         self.song_lyrics.grid(row=0,column=0,padx=10,pady=10)
 
+#This class creates the volume control frame 
 class VolumeControlFrame(LabelFrame):
     def __init__(self, parent,controller,pictures):
         super().__init__(parent,text="Volume",bg="White")
@@ -92,6 +98,7 @@ class VolumeControlFrame(LabelFrame):
         self.volume_lbl=ttk.Label(parent,image=pictures[5])
         self.volume_lbl.grid(row=1,column=1,pady=10)
 
+#This creates buttons frame 
 class ButtonsFrame(ttk.Frame):
     def __init__(self, parent,controller,buttons):
         super().__init__(parent)
@@ -105,6 +112,7 @@ class ButtonsFrame(ttk.Frame):
         self.stop_btn=Button(self,command=controller.stop,image=buttons[4],borderwidth=0,bg='white', activebackground='white',highlightthickness=0)
         self.stop_btn.grid(row=0,column=4,padx=10)
 
+#this creates the widget for the songs that can be currently played
 class SongListFrame(Frame):
     def __init__(self, parent):
         super().__init__(parent,highlightbackground="#0076b3", highlightthickness=5,highlightcolor="#0076b3")
@@ -118,6 +126,7 @@ class SongListFrame(Frame):
         self.song_list.config(yscrollcommand = self.scrollbar_song_list.set)
         self.scrollbar_song_list.config(command = self.song_list.yview)
 
+#This method creates the the first tab of the app
 class Tab1Frame(ttk.Frame):
     def __init__(self, parent,controller,buttons,volume):
         super().__init__(parent)
@@ -139,6 +148,7 @@ class Tab1Frame(ttk.Frame):
         self.lyrics_frame=LyricsFrame(self)
         self.lyrics_frame.pack()
 
+#This method creates the the second tab of the app
 class Tab2Frame(ttk.Frame):
     def __init__(self, parent,controller):
         super().__init__(parent)
@@ -149,6 +159,7 @@ class Tab2Frame(ttk.Frame):
         self.pl_songs_frame=PlaylistFrame(self,controller.eject_playlist,"Eject playlists","Songs In Playlist")
         self.pl_songs_frame.pack(side=RIGHT,padx=60)
 
+#This is the main root of the app it makes everything run
 class App(Tk):
     def __init__(self,):
         super().__init__()
@@ -207,7 +218,7 @@ class App(Tk):
         })
 
         self.style.theme_use("mainTheme")
-
+#This creates a popup window for information
     def popup(self,text):
         pop=Tk()
         pop.title("Info")
@@ -220,11 +231,10 @@ class App(Tk):
         pop.mainloop()
 
 
-pygame.mixer.init()
 
-
-if __name__ == '__main__':
+#It is starting the program
+if __name__ == '__main__': 
+    pygame.mixer.init()  
     app = App()
-    app.controller.get_and_display_playlists()
-    
+    app.controller.get_and_display_playlists()   
     app.mainloop()  
