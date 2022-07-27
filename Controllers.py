@@ -40,6 +40,7 @@ class ControllerApp():
             name=self.list_of_playlists[self.current_playlist_id].name
             delete_playlist_from_db(name)
             self.view.tab2_playlists.playlist_frame.list.delete(self.current_playlist_id)
+            self.list_of_playlists.pop(self.current_playlist_id)
             self.eject_playlist()
         else:
             self.view.popup("You must load a playlist!")
@@ -67,6 +68,8 @@ class ControllerApp():
 #Loads playlist
     def load_playlist(self):
         if len(self.view.tab2_playlists.playlist_frame.list.curselection())>0:
+            if self.current_song_id!=None:
+                self.stop()
             self.current_playlist_id=int(self.view.tab2_playlists.playlist_frame.list.curselection()[0])
             self.list_of_songs=self.list_of_playlists[self.current_playlist_id].list_of_songs
 
